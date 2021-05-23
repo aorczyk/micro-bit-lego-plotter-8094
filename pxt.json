@@ -1,5 +1,6 @@
 {
     "name": "Lego Plotter 8094",
+    "version": "1.0.0",
     "description": "",
     "dependencies": {
         "core": "*",
