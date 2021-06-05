@@ -21,8 +21,13 @@ const speed2distance: { [key: number]: number } = {
 }
 
 // Distance in mm
-function getTimeForDistance(distance: number, speed = 7){
-    return (distance * speed2distanceTime)/speed2distance[speed];
+function getTimeForDistance(distance: number, speed = 7, direction = 1){
+    if (direction){
+        // return (distance * speed2distanceTime)/speed2distance[speed];
+        return (distance * speed2distanceTime)/29;
+    } else {
+        return (distance * speed2distanceTime)/23.2;
+    }
 }
 
 // Pen on/off
@@ -77,9 +82,10 @@ let lastVerticalDirection = 1;
 let lastHorizontalDirection = 1;
 
 function draw(drawQueue: number[][][]){
+    let debug = false;
     let speed = 7;
-    let fixedDistance = 1.5;
-    let fixedTime = getTimeForDistance(fixedDistance, speed);
+    let fixedHorizontalDistance = 2.0;
+    let fixedVerticalDistance = 0.2;
 
     while (drawQueue.length){
         let item = drawQueue.shift();
@@ -93,19 +99,19 @@ function draw(drawQueue: number[][][]){
             let horizontalFixTime = 0;
 
             if (horizontalDistance && horizontalDirection != lastHorizontalDirection){
-                horizontalFixTime = fixedTime;
+                horizontalFixTime = getTimeForDistance(fixedHorizontalDistance, speed);
                 basic.showString("-");
                 lastHorizontalDirection = horizontalDirection
             }
 
             let verticalDistance = Math.abs(lastPosition[1] - point[1]);
             let verticalDirection = point[1] > lastPosition[1] ? 1 : point[1] < lastPosition[1] ? -1 : 0;
-            let verticalTime = getTimeForDistance(verticalDistance);
+            let verticalTime = getTimeForDistance(verticalDistance, speed, 0);
             let verticalFixTime = 0;
 
             if (verticalDistance && verticalDirection != lastVerticalDirection){
-                verticalFixTime = fixedTime;
-                basic.showString("-");
+                verticalFixTime = getTimeForDistance(fixedVerticalDistance, speed, 0);
+                basic.showString("|");
                 lastVerticalDirection = verticalDirection
             }
 
@@ -119,44 +125,33 @@ function draw(drawQueue: number[][][]){
                 setPen(true);
             }
 
-            // Debug
-            // serial.writeLine(JSON.stringify({
-            //     horizontalDirection: horizontalDirection, 
-            //     horizontalDistance: horizontalDistance,
-            //     horizontalTime: horizontalTime,
-            //     horizontalFixTime: horizontalFixTime,
-            //     verticalDirection: verticalDirection,
-            //     verticalDistance: verticalDistance,
-            //     verticalTime: verticalTime,
-            //     verticalFixTime: verticalFixTime,
-            // }))
-
-            // Fix when change direction
-            if (horizontalFixTime && verticalFixTime){
-                pf.control(speed * horizontalDirection, speed * verticalDirection, 1);
-                pf.pause(horizontalFixTime);
-            } else if (horizontalFixTime){
-                pf.control(speed * horizontalDirection, 0, 1);
-                pf.pause(horizontalFixTime);  
-            } else if (verticalFixTime){
-                pf.control(0, speed * verticalDirection, 1);
-                pf.pause(verticalFixTime);  
+            if (debug){
+                serial.writeLine(JSON.stringify({
+                    horizontalDirection: horizontalDirection, 
+                    horizontalDistance: horizontalDistance,
+                    horizontalTime: horizontalTime,
+                    horizontalFixTime: horizontalFixTime,
+                    verticalDirection: verticalDirection,
+                    verticalDistance: verticalDistance,
+                    verticalTime: verticalTime,
+                    verticalFixTime: verticalFixTime,
+                }))
             }
 
-            if (horizontalDirection && verticalDirection && Math.abs(verticalDistance) == Math.abs(horizontalDistance)){
+            if (horizontalDirection && verticalDirection && Math.abs(verticalDistance) == Math.abs(horizontalDistance)){               
                 pf.control(speed * horizontalDirection, speed * verticalDirection, 1);
-                pf.pause(horizontalTime);
+                pf.pause(horizontalTime + horizontalFixTime);
                 pf.control(0, 0, 1);
             } else {
                 if (verticalDistance){
                     pf.control(0, speed * verticalDirection, 1);
-                    pf.pause(verticalTime);
+                    pf.pause(verticalTime + verticalFixTime);
                     pf.control(0, 0, 1);
                 }
 
                 if (horizontalDistance){
                     pf.control(speed * horizontalDirection, 0, 1);
-                    pf.pause(horizontalTime);
+                    pf.pause(horizontalTime + horizontalFixTime);
                     pf.control(0, 0, 1);
                 }
             }
@@ -175,7 +170,7 @@ function initialized(){
     lastVerticalDirection = 1;
     lastHorizontalDirection = 1;
 
-    pf.direction('left', 'right', 1)
+    pf.direction('right', 'left', 1)
     pf.control(7, 7, 1);
     pf.pause(1000);
     pf.control(0, 0, 1);
@@ -234,13 +229,21 @@ input.onButtonPressed(Button.A, function () {
     //     [[0,10],[0,10]],
     // ])
 
+    // Rect
+    // draw([
+    //     [[0,0],[10,0]],
+    //     [[10,0],[10,10]],
+    //     [[10,10],[0,10]],
+    //     [[0,10],[0,0]],
+    // ])
+
     // Rect in rect
     // draw([
     //     [[0,0],[20,0]],
     //     [[20,0],[20,20]],
     //     [[20,20],[0,20]],
     //     [[0,20],[0,0]],
-    // 
+    
     //     [[5,5],[15,5]],
     //     [[15,5],[15,15]],
     //     [[15,15],[5,15]],
@@ -271,10 +274,8 @@ input.onButtonPressed(Button.A, function () {
 
     // Diagonal lines
     // draw([
-    //     [[0,0],[10,10]],
-    //     [[0,0],[-10,-10]],
-    //     [[0,0],[10,-10]],
-    //     [[0,0],[-10,10]],
+    //     [[0,0],[20,20]],
+    //     [[20,0],[0,20]]
     // ])
 
     // Triangular
@@ -292,12 +293,18 @@ input.onButtonPressed(Button.A, function () {
     //     [[0,20],[0,20]],
     // ])
 
+    // Test
+    draw([
+        [[0,0],[20,20]],
+        [[20,20],[0,0]]
+    ])
+
     basic.clearScreen()
 })
 
 input.onButtonPressed(Button.B, function () {
     // pf.stop()
-    calibrate()
+    // calibrate()
 
     // Test
     // draw([
@@ -306,6 +313,33 @@ input.onButtonPressed(Button.B, function () {
     //     [[15,15],[5,15]],
     //     [[5,15],[5,5]],
     // ])
+
+    // Test
+    // draw([
+    //     [[0,0],[20,0]],
+    //     [[20,5],[0,5]],
+    //     [[0,10],[20,10]],
+    //     [[20,15],[0,15]],
+    //     [[0,20],[20,20]],
+    // ])
+
+    // draw([
+    //     [[20,20],[20,0]],
+    //     [[15,0],[15,20]],
+    //     [[10,20],[10,0]],
+    //     [[5,0],[5,20]],
+    //     [[0,20],[0,0]],
+    // ])
+
+    draw([
+        [[0,0],[10,0]],
+        [[10,5],[0,5]],
+        [[0,10],[10,10]],
+
+        [[10,10],[10,0]],
+        [[5,0],[5,10]],
+        [[0,10],[0,0]],
+    ])
 })
 
 // Emergency stop
