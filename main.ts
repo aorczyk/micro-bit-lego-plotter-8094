@@ -366,4 +366,4 @@ input.onLogoEvent(TouchButtonEvent.Pressed, function () {
 
 // Init
 initialized();
-pf.debug = true;
+// pf.debug = true;
