@@ -6,7 +6,7 @@
         "core": "*",
         "radio": "*",
         "microphone": "*",
-        "Lego Power Function Controller": "github:aorczyk/lego-power-function-controller#v1.0.2"
+        "Lego Power Function Controller": "github:aorczyk/lego-power-function-controller#v1.0.3"
     },
     "files": [
         "main.ts",
