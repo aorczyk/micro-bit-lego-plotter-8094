@@ -26,7 +26,9 @@ function getTimeForDistance(distance: number, speed = 7, direction = 1){
         // return (distance * speed2distanceTime)/speed2distance[speed];
         return (distance * speed2distanceTime)/29;
     } else {
-        return (distance * speed2distanceTime)/23.2;
+        // 1,724137931034483 s - 10mm lub 8.5mm w osi y
+        // Korekta: 5*8.5/1,724137931034483 = 24,65
+        return (distance * speed2distanceTime)/24.65;
     }
 }
 
@@ -38,17 +40,15 @@ function setPen(status: boolean){
         return;
     }
 
-    let penSwitchTime = 1000;
-
     if (status){
         pf.control(7, 0, 2)
-        pf.pause(penSwitchTime)
+        pf.pause(800)
         pf.control(0, 0, 2)
         penStatus = true
         basic.showIcon(IconNames.SmallDiamond)
     } else {
         pf.control(-7, 0, 2)
-        pf.pause(penSwitchTime)
+        pf.pause(1000)
         pf.control(0, 0, 2)
         penStatus = false
         basic.showIcon(IconNames.Diamond)
@@ -126,15 +126,23 @@ function draw(drawQueue: number[][][]){
             }
 
             if (debug){
+                // serial.writeLine(JSON.stringify({
+                //     horizontalDirection: horizontalDirection, 
+                //     horizontalDistance: horizontalDistance,
+                //     horizontalTime: horizontalTime,
+                //     horizontalFixTime: horizontalFixTime,
+                //     verticalDirection: verticalDirection,
+                //     verticalDistance: verticalDistance,
+                //     verticalTime: verticalTime,
+                //     verticalFixTime: verticalFixTime,
+                // }))
+
                 serial.writeLine(JSON.stringify({
-                    horizontalDirection: horizontalDirection, 
-                    horizontalDistance: horizontalDistance,
-                    horizontalTime: horizontalTime,
-                    horizontalFixTime: horizontalFixTime,
-                    verticalDirection: verticalDirection,
-                    verticalDistance: verticalDistance,
-                    verticalTime: verticalTime,
-                    verticalFixTime: verticalFixTime,
+                    time: input.runningTime(),
+                    xT: horizontalTime,
+                    dxT: horizontalFixTime,
+                    yT: verticalTime,
+                    dyT: verticalFixTime,
                 }))
             }
 
@@ -154,6 +162,12 @@ function draw(drawQueue: number[][][]){
                     pf.pause(horizontalTime + horizontalFixTime);
                     pf.control(0, 0, 1);
                 }
+            }
+
+            if (debug){
+                serial.writeLine(JSON.stringify({
+                    time: input.runningTime(),
+                }))
             }
 
             lastPosition = point
@@ -352,3 +366,4 @@ input.onLogoEvent(TouchButtonEvent.Pressed, function () {
 
 // Init
 initialized();
+pf.debug = true;
