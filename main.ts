@@ -146,7 +146,7 @@ function draw(drawQueue: number[][][]){
                 }))
             }
 
-            if (horizontalDirection && verticalDirection && Math.abs(verticalDistance) == Math.abs(horizontalDistance)){               
+            if (penStatus == true && horizontalDirection && verticalDirection && Math.abs(verticalDistance) == Math.abs(horizontalDistance)){               
                 pf.control(speed * horizontalDirection, speed * verticalDirection, 1);
                 pf.pause(horizontalTime + horizontalFixTime);
                 pf.control(0, 0, 1);
