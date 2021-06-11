@@ -42,7 +42,7 @@ function setPen(status: boolean){
 
     if (status){
         pf.control(7, 0, 2)
-        pf.pause(800)
+        pf.pause(900)
         pf.control(0, 0, 2)
         penStatus = true
         basic.showIcon(IconNames.SmallDiamond)
@@ -85,7 +85,7 @@ function draw(drawQueue: number[][][]){
     let debug = false;
     let speed = 7;
     let fixedHorizontalDistance = 2.0;
-    let fixedVerticalDistance = 0.2;
+    let fixedVerticalDistance = 0.0;
 
     while (drawQueue.length){
         let item = drawQueue.shift();
@@ -218,7 +218,7 @@ function calibrate(){
 
 // ----------------
 
-input.onButtonPressed(Button.A, function () {
+//input.onButtonPressed(Button.A, function () {
     // Two lines
     // draw([
     //     [[5,5],[10,5]],
@@ -307,16 +307,12 @@ input.onButtonPressed(Button.A, function () {
     //     [[0,20],[0,20]],
     // ])
 
-    // Test
-    draw([
-        [[0,0],[20,20]],
-        [[20,20],[0,0]]
-    ])
 
-    basic.clearScreen()
-})
 
-input.onButtonPressed(Button.B, function () {
+    //basic.clearScreen()
+//})
+
+//input.onButtonPressed(Button.B, function () {
     // pf.stop()
     // calibrate()
 
@@ -345,25 +341,122 @@ input.onButtonPressed(Button.B, function () {
     //     [[0,20],[0,0]],
     // ])
 
-    draw([
-        [[0,0],[10,0]],
-        [[10,5],[0,5]],
-        [[0,10],[10,10]],
 
-        [[10,10],[10,0]],
-        [[5,0],[5,10]],
-        [[0,10],[0,0]],
-    ])
-})
+//})
 
 // Emergency stop
-input.onLogoEvent(TouchButtonEvent.Pressed, function () {
-    pf.control(0, 0, 1)
-    pf.control(0, 0, 2)
-    pf.control(0, 0, 3)
-    pf.control(0, 0, 4)
-})
+// input.onLogoEvent(TouchButtonEvent.Pressed, function () {
+//     pf.control(0, 0, 1)
+//     pf.control(0, 0, 2)
+//     pf.control(0, 0, 3)
+//     pf.control(0, 0, 4)
+// })
 
 // Init
 initialized();
 // pf.debug = true;
+
+
+let menu = {
+    selected: 0,
+    items: [
+        menuItem1,
+        menuItem2,
+        menuItem3,
+    ]
+}
+
+function menuItem1() {
+    input.onButtonPressed(Button.A, function () {
+        // Diagonal
+        // draw([
+        //     [[0,0],[20,20]],
+        //     [[20,20],[0,0]]
+        // ])
+
+        // Diagonal lines
+        draw([
+            [[0,0],[20,20]],
+            [[20,0],[0,20]]
+        ])
+    })
+
+    input.onButtonPressed(Button.B, function () {
+        // Rect net
+        draw([
+            [[0,0],[10,0]],
+            [[10,5],[0,5]],
+            [[0,10],[10,10]],
+
+            [[10,10],[10,0]],
+            [[5,0],[5,10]],
+            [[0,10],[0,0]],
+        ])
+    })
+}
+
+function menuItem2() {
+    input.onButtonPressed(Button.A, function () {
+        // Rect
+        draw([
+            [[0,0],[10,0]],
+            [[10,0],[10,10]],
+            [[10,10],[0,10]],
+            [[0,10],[0,0]],
+        ])
+    })
+
+    input.onButtonPressed(Button.B, function () {
+        // Rect in rect
+        draw([
+            [[0,0],[20,0]],
+            [[20,0],[20,20]],
+            [[20,20],[0,20]],
+            [[0,20],[0,0]],
+        
+            [[5,5],[15,5]],
+            [[15,5],[15,15]],
+            [[15,15],[5,15]],
+            [[5,15],[5,5]],
+        ])
+    })
+}
+
+function menuItem3() {
+    input.onButtonPressed(Button.A, function () {
+        // Rect corners (points)
+        draw([
+            [[0,0],[0,0]],
+            [[20,0],[20,0]],
+            [[20,20],[20,20]],
+            [[0,20],[0,20]],
+        ])
+    })
+
+    input.onButtonPressed(Button.B, function () {
+        // Triangular
+        draw([
+            [[0,0],[10,10]],
+            [[10,10],[20,0]],
+            [[20,0],[0,0]],
+        ])
+    })
+}
+
+function loadMenuProgram(){
+    menu.items[menu.selected]()
+
+    basic.showNumber(menu.selected)
+}
+
+loadMenuProgram();
+
+input.onLogoEvent(TouchButtonEvent.Pressed, function () {
+	if (menu.selected + 1 < menu.items.length){
+        menu.selected += 1;
+    } else {
+        menu.selected = 0
+    }
+
+    loadMenuProgram();
+})
