@@ -10,26 +10,28 @@
 // 5 s distance in mm
 // Minimal run time: 500 ms
 const speed2distanceTime = 5000;
-const speed2distance: { [key: number]: number } = {
-    1: 4.14,
-    2: 8.29,
-    3: 12.43, // pomiar 19
-    4: 16.57,
-    5: 20.71,
-    6: 24.86,
-    7: 29, // pomiar
+const speed2distance: { [key: number]: number[] } = {
+    // 1: 4.14,
+    // 2: 8.29,
+    // 3: 12.43, // pomiar 19
+    // 4: 16.57,
+    // 5: 20.71,
+    // 6: 24.86,
+    7: [26,29], // pomiar
 }
 
 // Distance in mm
 function getTimeForDistance(distance: number, speed = 7, direction = 1){
-    if (direction){
-        // return (distance * speed2distanceTime)/speed2distance[speed];
-        return (distance * speed2distanceTime)/29;
-    } else {
-        // 1,724137931034483 s - 10mm lub 8.5mm w osi y
-        // Korekta: 5*8.5/1,724137931034483 = 24,65
-        return (distance * speed2distanceTime)/24.65;
-    }
+    return (distance * speed2distanceTime)/speed2distance[speed][direction];
+
+    // if (direction){
+    //     // return (distance * speed2distanceTime)/speed2distance[speed];
+    //     return (distance * speed2distanceTime)/29;
+    // } else {
+    //     // 1,724137931034483 s - 10mm lub 8.5mm w osi y
+    //     // Korekta: 5*8.5/1,724137931034483 = 24,65
+    //     return (distance * speed2distanceTime)/24.65;
+    // }
 }
 
 // Pen on/off
@@ -42,14 +44,15 @@ function setPen(status: boolean){
 
     if (status){
         pf.control(7, 0, 2)
-        pf.pause(900)
-        pf.control(0, 0, 2)
+        pf.pause(1000)
+        // pf.control(0, 0, 2)
         penStatus = true
         basic.showIcon(IconNames.SmallDiamond)
     } else {
-        pf.control(-7, 0, 2)
-        pf.pause(1000)
+        // pf.control(-7, 0, 2)
+        // pf.pause(1000)
         pf.control(0, 0, 2)
+        pf.pause(1000)
         penStatus = false
         basic.showIcon(IconNames.Diamond)
     }
@@ -171,6 +174,7 @@ function draw(drawQueue: number[][][]){
             }
 
             lastPosition = point
+            pf.pause(500);
         }
     }
 
@@ -185,6 +189,7 @@ function initialized(){
     lastHorizontalDirection = 1;
 
     pf.direction('right', 'left', 1)
+    pf.pause(1000);
     pf.control(7, 7, 1);
     pf.pause(1000);
     pf.control(0, 0, 1);
@@ -357,15 +362,6 @@ initialized();
 // pf.debug = true;
 
 
-let menu = {
-    selected: 0,
-    items: [
-        menuItem1,
-        menuItem2,
-        menuItem3,
-    ]
-}
-
 function menuItem1() {
     input.onButtonPressed(Button.A, function () {
         // Diagonal
@@ -375,9 +371,20 @@ function menuItem1() {
         // ])
 
         // Diagonal lines
+        // draw([
+        //     [[0,0],[20,20]],
+        //     [[20,0],[0,20]]
+        // ])
+
         draw([
-            [[0,0],[20,20]],
-            [[20,0],[0,20]]
+            [[0,0],[5,0]],
+            [[5,0],[5,5]],
+            [[5,5],[10,5]],
+            [[10,5],[10,0]],
+            [[10,0],[15,0]],
+            [[15,0],[15,5]],
+            [[15,5],[20,5]],
+            [[20,5],[20,0]],
         ])
     })
 
@@ -414,10 +421,15 @@ function menuItem2() {
             [[20,20],[0,20]],
             [[0,20],[0,0]],
         
-            [[5,5],[15,5]],
-            [[15,5],[15,15]],
-            [[15,15],[5,15]],
-            [[5,15],[5,5]],
+            // [[5,5],[15,5]],
+            // [[15,5],[15,15]],
+            // [[15,15],[5,15]],
+            // [[5,15],[5,5]],
+
+            [[10,10],[20,10]],
+            [[20,5],[20,20]],
+            [[20,20],[10,20]],
+            [[10,20],[10,10]],
         ])
     })
 }
@@ -435,18 +447,45 @@ function menuItem3() {
 
     input.onButtonPressed(Button.B, function () {
         // Triangular
+        // draw([
+        //     [[0,0],[10,10]],
+        //     [[10,10],[20,0]],
+        //     [[20,0],[0,0]],
+        // ])
+
+        // House
         draw([
-            [[0,0],[10,10]],
-            [[10,10],[20,0]],
-            [[20,0],[0,0]],
+            [[0,0],[20,0]],
+            [[20,0],[20,20]],
+
+            [[20,20],[10,30]],
+            [[10,30],[0,20]],
+            [[0,20],[0,0]],
+
+            // Okno
+            [[5,5],[15,5]],
+            [[15,5],[15,15]],
+            [[15,15],[5,15]],
+            [[5,15],[5,5]],
         ])
     })
 }
 
+// --- Menu ---
+
 function loadMenuProgram(){
     menu.items[menu.selected]()
 
-    basic.showNumber(menu.selected)
+    basic.showNumber(menu.selected + 1)
+}
+
+let menu = {
+    selected: 0,
+    items: [
+        menuItem1,
+        menuItem2,
+        // menuItem3
+    ]
 }
 
 loadMenuProgram();
