@@ -43,15 +43,12 @@ function setPen(status: boolean){
     }
 
     if (status){
-        pf.control(7, 0, 2)
+        pf.red(7, 2)
         pf.pause(1000)
-        // pf.control(0, 0, 2)
         penStatus = true
         basic.showIcon(IconNames.SmallDiamond)
     } else {
-        // pf.control(-7, 0, 2)
-        // pf.pause(1000)
-        pf.control(0, 0, 2)
+        pf.red(0, 2)
         pf.pause(1000)
         penStatus = false
         basic.showIcon(IconNames.Diamond)
@@ -87,11 +84,14 @@ let lastHorizontalDirection = 1;
 function draw(drawQueue: number[][][]){
     let debug = false;
     let speed = 7;
-    let fixedHorizontalDistance = 2.0;
-    let fixedVerticalDistance = 0.0;
+    // let fixedHorizontalDistance = 2.0;
+    let fixedHorizontalDistance = 1.5;
+    let fixedVerticalDistance = 1.0;
 
     while (drawQueue.length){
         let item = drawQueue.shift();
+
+        serial.writeLine(JSON.stringify(item));
 
         for (let i = 0; i <= 1; i++){
             let point = item[i];
@@ -154,16 +154,21 @@ function draw(drawQueue: number[][][]){
                 pf.pause(horizontalTime + horizontalFixTime);
                 pf.control(0, 0, 1);
             } else {
-                if (verticalDistance){
-                    pf.control(0, speed * verticalDirection, 1);
-                    pf.pause(verticalTime + verticalFixTime);
-                    pf.control(0, 0, 1);
+                if (horizontalDistance){
+                    // pf.control(speed * horizontalDirection, 0, 1);
+                    pf.red(speed * horizontalDirection, 1);
+                    pf.pause(horizontalTime + horizontalFixTime);
+                    // pf.control(0, 0, 1);
+                    pf.red(0, 1);
                 }
 
-                if (horizontalDistance){
-                    pf.control(speed * horizontalDirection, 0, 1);
-                    pf.pause(horizontalTime + horizontalFixTime);
-                    pf.control(0, 0, 1);
+                if (verticalDistance){
+                    // pf.control(0, speed * verticalDirection, 1);
+                    pf.blue(speed * verticalDirection, 1);
+                    pf.pause(verticalTime + verticalFixTime);
+                    // pf.control(0, 0, 1);
+                    pf.blue(0, 1);
+
                 }
             }
 
@@ -189,10 +194,10 @@ function initialized(){
     lastHorizontalDirection = 1;
 
     pf.direction('right', 'left', 1)
-    pf.pause(1000);
-    pf.control(7, 7, 1);
-    pf.pause(1000);
-    pf.control(0, 0, 1);
+    pf.pause(300);
+    // pf.control(7, 7, 1);
+    // pf.pause(300);
+    // pf.control(0, 0, 1);
 
     basic.clearScreen();
 }
@@ -359,7 +364,48 @@ function calibrate(){
 
 // Init
 initialized();
-// pf.debug = true;
+pf.debug = true;
+
+function alphabet(letter: string){
+    let alphabet: { [key: string]: number[][][] } = {
+        A: [
+            [[0,0],[0,2]],
+            [[0,2],[1,2]],
+            [[1,2],[1,0]],
+            [[0,1],[1,1]],
+        ],
+        B: [
+            [[0,0],[0,2]],
+            [[0,2],[1,2]],
+            [[1,2],[1,0]],
+            [[1,0],[0,0]],
+            [[0,1],[1,1]],
+        ],
+        S: [
+            [[0,0],[1,0]],
+            [[1,0],[1,1]],
+            [[1,1],[0,1]],
+            [[0,1],[0,2]],
+            [[0,2],[1,2]],
+        ],
+        I: [
+            [[0,0],[0,2]],
+        ],
+        N: [
+            [[0,0],[0,2]],
+            [[0,2],[2,0]],
+            [[2,0],[2,2]],
+        ],
+        T: [
+            [[0.5,0],[0.5,2]],
+            [[0,2],[1,2]],
+        ]
+    }
+
+    // console.log(alphabet[letter]);
+    serial.writeLine(letter);
+    return alphabet[letter];
+}
 
 
 function menuItem1() {
@@ -376,63 +422,124 @@ function menuItem1() {
         //     [[20,0],[0,20]]
         // ])
 
-        draw([
-            [[0,0],[5,0]],
-            [[5,0],[5,5]],
-            [[5,5],[10,5]],
-            [[10,5],[10,0]],
-            [[10,0],[15,0]],
-            [[15,0],[15,5]],
-            [[15,5],[20,5]],
-            [[20,5],[20,0]],
-        ])
+        // draw([
+        //     [[0,0],[5,0]],
+        //     [[5,0],[5,5]],
+        //     [[5,5],[10,5]],
+        //     [[10,5],[10,0]],
+        //     [[10,0],[15,0]],
+        //     [[15,0],[15,5]],
+        //     [[15,5],[20,5]],
+        //     [[20,5],[20,0]],
+        // ])
+
+        // Test
+
+        // let drawPoints = [];
+
+        // for (let i = 0; i < 3; i++){
+        //     drawPoints.push([[10 * i,0],[10 * i,5]])
+        //     drawPoints.push([[10 * i,5],[5 + 10 * i,5]])
+        //     drawPoints.push([[5 + 10 * i,5],[5 + 10 * i,0]])
+        //     drawPoints.push([[5 + 10 * i,0],[10 + 10 * i,0]])
+        // }
+
+        // drawPoints.push([[0,0],[0,0]])
+
+        // draw(drawPoints)
+
+        // ---
+        let scale = 5;
+        // let text = 'BASIA';
+        let text = 'ANTOS';
+        let letters = text.split('');
+
+        for (let n = 0; n < letters.length; n++){
+            let letter = alphabet(letters[n]);
+            let letterSpacing = n > 0 ? 1 * scale : 0;
+            
+            // console.log(letters[n])
+            // console.log(JSON.stringify(lastPosition))
+            // console.log(shift)
+
+            if (letter) {
+                // Calibrate
+                for (let r = 0; r < letter.length; r++){
+                    letter[r][0][0] *= scale;
+                    letter[r][0][1] *= scale;
+
+                    letter[r][1][0] *= scale;
+                    letter[r][1][1] *= scale;
+
+                    letter[r][0][0] += lastPosition[0] + letterSpacing;
+                    letter[r][1][0] += lastPosition[0] + letterSpacing;
+                }
+
+                // console.log(JSON.stringify(letter))
+            }
+
+            draw(letter)
+        }
     })
 
     input.onButtonPressed(Button.B, function () {
         // Rect net
-        draw([
-            [[0,0],[10,0]],
-            [[10,5],[0,5]],
-            [[0,10],[10,10]],
+        // draw([
+        //     [[0,0],[10,0]],
+        //     [[10,5],[0,5]],
+        //     [[0,10],[10,10]],
 
-            [[10,10],[10,0]],
-            [[5,0],[5,10]],
-            [[0,10],[0,0]],
-        ])
+        //     [[10,10],[10,0]],
+        //     [[5,0],[5,10]],
+        //     [[0,10],[0,0]],
+        // ])
+
+        // let drawPoints = [];
+
+        // for (let i = 0; i < 3; i++){
+        //     drawPoints.push([[0,10 * i],[5,10 * i]])
+        //     drawPoints.push([[5,10 * i],[5,5 + 10 * i]])
+        //     drawPoints.push([[5,5 + 10 * i],[0,5 + 10 * i]])
+        //     drawPoints.push([[0,5 + 10 * i],[0,10 + 10 * i]])
+        // }
+
+        // drawPoints.push([[0,0],[0,0]])
+
+        // draw(drawPoints)
     })
 }
 
-function menuItem2() {
-    input.onButtonPressed(Button.A, function () {
-        // Rect
-        draw([
-            [[0,0],[10,0]],
-            [[10,0],[10,10]],
-            [[10,10],[0,10]],
-            [[0,10],[0,0]],
-        ])
-    })
+// function menuItem2() {
+//     input.onButtonPressed(Button.A, function () {
+//         // Rect
+//         draw([
+//             [[0,0],[10,0]],
+//             [[10,0],[10,10]],
+//             [[10,10],[0,10]],
+//             [[0,10],[0,0]],
+//         ])
+//     })
 
-    input.onButtonPressed(Button.B, function () {
-        // Rect in rect
-        draw([
-            [[0,0],[20,0]],
-            [[20,0],[20,20]],
-            [[20,20],[0,20]],
-            [[0,20],[0,0]],
+//     input.onButtonPressed(Button.B, function () {
+//         // Rect in rect
+//         draw([
+//             [[0,0],[20,0]],
+//             [[20,0],[20,20]],
+//             [[20,20],[0,20]],
+//             [[0,20],[0,0]],
         
-            // [[5,5],[15,5]],
-            // [[15,5],[15,15]],
-            // [[15,15],[5,15]],
-            // [[5,15],[5,5]],
+//             // [[5,5],[15,5]],
+//             // [[15,5],[15,15]],
+//             // [[15,15],[5,15]],
+//             // [[5,15],[5,5]],
 
-            [[10,10],[20,10]],
-            [[20,5],[20,20]],
-            [[20,20],[10,20]],
-            [[10,20],[10,10]],
-        ])
-    })
-}
+//             [[10,10],[20,10]],
+//             [[20,5],[20,20]],
+//             [[20,20],[10,20]],
+//             [[10,20],[10,10]],
+//         ])
+//     })
+// }
 
 function menuItem3() {
     input.onButtonPressed(Button.A, function () {
@@ -471,6 +578,30 @@ function menuItem3() {
     })
 }
 
+// function menuItem4() {
+//     let counter = 0;
+//     let isPressed = false;
+
+//     input.onButtonPressed(Button.B, function () {
+//         basic.showNumber(counter)
+//     })
+
+//     basic.forever(function () {
+//         if (pins.digitalReadPin(DigitalPin.P0)){
+//             // basic.showIcon(IconNames.Heart)
+//             if (!isPressed){
+//                 counter += 1;
+//                 isPressed = true;
+//                 // basic.showNumber(counter)
+//             }
+//         } else {
+//             isPressed = false;
+//         }
+
+//         basic.pause(10)
+//     })
+// }
+
 // --- Menu ---
 
 function loadMenuProgram(){
@@ -483,8 +614,8 @@ let menu = {
     selected: 0,
     items: [
         menuItem1,
-        menuItem2,
-        // menuItem3
+        // menuItem2,
+        // menuItem4
     ]
 }
 
