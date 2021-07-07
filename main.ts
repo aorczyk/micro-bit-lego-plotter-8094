@@ -11,27 +11,12 @@
 // Minimal run time: 500 ms
 const speed2distanceTime = 5000;
 const speed2distance: { [key: number]: number[] } = {
-    // 1: 4.14,
-    // 2: 8.29,
-    // 3: 12.43, // pomiar 19
-    // 4: 16.57,
-    // 5: 20.71,
-    // 6: 24.86,
     7: [26,29], // pomiar
 }
 
 // Distance in mm
 function getTimeForDistance(distance: number, speed = 7, direction = 1){
-    return (distance * speed2distanceTime)/speed2distance[speed][direction];
-
-    // if (direction){
-    //     // return (distance * speed2distanceTime)/speed2distance[speed];
-    //     return (distance * speed2distanceTime)/29;
-    // } else {
-    //     // 1,724137931034483 s - 10mm lub 8.5mm w osi y
-    //     // Korekta: 5*8.5/1,724137931034483 = 24,65
-    //     return (distance * speed2distanceTime)/24.65;
-    // }
+    return Math.floor((distance * speed2distanceTime)/speed2distance[speed][direction]);
 }
 
 // Pen on/off
@@ -45,11 +30,13 @@ function setPen(status: boolean){
     if (status){
         pf.red(7, 2)
         pf.pause(1000)
+
         penStatus = true
         basic.showIcon(IconNames.SmallDiamond)
     } else {
         pf.red(0, 2)
         pf.pause(1000)
+
         penStatus = false
         basic.showIcon(IconNames.Diamond)
     }
@@ -84,16 +71,16 @@ let lastHorizontalDirection = 1;
 function draw(drawQueue: number[][][]){
     let debug = false;
     let speed = 7;
-    // let fixedHorizontalDistance = 2.0;
     let fixedHorizontalDistance = 1.5;
     let fixedVerticalDistance = 1.0;
 
     while (drawQueue.length){
         let item = drawQueue.shift();
 
-        serial.writeLine(JSON.stringify(item));
+        // serial.writeLine(JSON.stringify(item));
 
         for (let i = 0; i <= 1; i++){
+            // pf.pause(1000);         
             let point = item[i];
 
             let horizontalDistance = Math.abs(lastPosition[0] - point[0]);
@@ -103,9 +90,10 @@ function draw(drawQueue: number[][][]){
 
             if (horizontalDistance && horizontalDirection != lastHorizontalDirection){
                 horizontalFixTime = getTimeForDistance(fixedHorizontalDistance, speed);
-                basic.showString("-");
                 lastHorizontalDirection = horizontalDirection
             }
+
+            let horizontalPauseTime = Math.floor(horizontalTime + horizontalFixTime);
 
             let verticalDistance = Math.abs(lastPosition[1] - point[1]);
             let verticalDirection = point[1] > lastPosition[1] ? 1 : point[1] < lastPosition[1] ? -1 : 0;
@@ -114,9 +102,10 @@ function draw(drawQueue: number[][][]){
 
             if (verticalDistance && verticalDirection != lastVerticalDirection){
                 verticalFixTime = getTimeForDistance(fixedVerticalDistance, speed, 0);
-                basic.showString("|");
                 lastVerticalDirection = verticalDirection
             }
+
+            let verticalPauseTime = Math.floor(verticalTime + verticalFixTime);
 
             if (verticalDistance || horizontalDistance){
                 setPen(!!i);
@@ -128,58 +117,62 @@ function draw(drawQueue: number[][][]){
                 setPen(true);
             }
 
-            if (debug){
-                // serial.writeLine(JSON.stringify({
-                //     horizontalDirection: horizontalDirection, 
-                //     horizontalDistance: horizontalDistance,
-                //     horizontalTime: horizontalTime,
-                //     horizontalFixTime: horizontalFixTime,
-                //     verticalDirection: verticalDirection,
-                //     verticalDistance: verticalDistance,
-                //     verticalTime: verticalTime,
-                //     verticalFixTime: verticalFixTime,
-                // }))
+            if (penStatus == true && verticalDistance && horizontalDistance && Math.abs(verticalDistance) == Math.abs(horizontalDistance)){               
+                // pf.control(speed * horizontalDirection, speed * verticalDirection, 1);
+                // pf.pause(horizontalPauseTime)
+                // pf.control(0, 0, 1);
+                
+                if (verticalFixTime && horizontalFixTime){
+                    if (verticalFixTime > horizontalFixTime){
+                        pf.blue(speed * verticalDirection, 1);
+                        pf.pause(verticalFixTime - horizontalFixTime)
+                        pf.red(speed * horizontalDirection, 1);
+                        pf.pause(horizontalPauseTime)
+                    } else {
+                        pf.red(speed * horizontalDirection, 1);
+                        pf.pause(horizontalFixTime - verticalFixTime)
+                        pf.blue(speed * verticalDirection, 1);
+                        pf.pause(verticalPauseTime)
+                    }
+                } else if (verticalFixTime){
+                    pf.blue(speed * verticalDirection, 1);
+                    pf.pause(verticalFixTime)
+                    pf.red(speed * horizontalDirection, 1);
+                    pf.pause(verticalTime)
+                } else if (horizontalFixTime){
+                    pf.red(speed * horizontalDirection, 1);
+                    pf.pause(horizontalFixTime)
+                    pf.blue(speed * verticalDirection, 1);
+                    pf.pause(horizontalTime)
+                } else {
+                    pf.control(speed * horizontalDirection, speed * verticalDirection, 1);
+                    pf.pause(horizontalPauseTime)
+                }
 
-                serial.writeLine(JSON.stringify({
-                    time: input.runningTime(),
-                    xT: horizontalTime,
-                    dxT: horizontalFixTime,
-                    yT: verticalTime,
-                    dyT: verticalFixTime,
-                }))
-            }
-
-            if (penStatus == true && horizontalDirection && verticalDirection && Math.abs(verticalDistance) == Math.abs(horizontalDistance)){               
-                pf.control(speed * horizontalDirection, speed * verticalDirection, 1);
-                pf.pause(horizontalTime + horizontalFixTime);
                 pf.control(0, 0, 1);
             } else {
                 if (horizontalDistance){
-                    // pf.control(speed * horizontalDirection, 0, 1);
+                    let timeStart = input.runningTime();
                     pf.red(speed * horizontalDirection, 1);
-                    pf.pause(horizontalTime + horizontalFixTime);
-                    // pf.control(0, 0, 1);
+                    pf.pause(horizontalPauseTime)
+                    let timeStop = input.runningTime();
+                    let runTime = timeStop - timeStart;
+                    serial.writeLine(JSON.stringify({c: 'red', dt: runTime - horizontalPauseTime, pauseTime: horizontalPauseTime, timeStart: timeStart}))
                     pf.red(0, 1);
                 }
 
                 if (verticalDistance){
-                    // pf.control(0, speed * verticalDirection, 1);
+                    let timeStart = input.runningTime();
                     pf.blue(speed * verticalDirection, 1);
-                    pf.pause(verticalTime + verticalFixTime);
-                    // pf.control(0, 0, 1);
+                    pf.pause(verticalPauseTime)
+                    let timeStop = input.runningTime();
+                    let runTime = timeStop - timeStart;
+                    serial.writeLine(JSON.stringify({c: 'blue', dt: runTime - verticalPauseTime, pauseTime: verticalPauseTime, timeStart: timeStart}))
                     pf.blue(0, 1);
-
                 }
             }
 
-            if (debug){
-                serial.writeLine(JSON.stringify({
-                    time: input.runningTime(),
-                }))
-            }
-
             lastPosition = point
-            pf.pause(500);
         }
     }
 
@@ -192,441 +185,210 @@ function initialized(){
     basic.showString("I");
     lastVerticalDirection = 1;
     lastHorizontalDirection = 1;
-
+    
     pf.direction('right', 'left', 1)
-    pf.pause(300);
-    // pf.control(7, 7, 1);
-    // pf.pause(300);
-    // pf.control(0, 0, 1);
-
-    basic.clearScreen();
-}
-
-// Ror each speed draws section in 3s.
-function calibrate(){
-    setPen(false)
-    // Init - nieweluje początkowe przesunięcie trybów
-    pf.control(0, 7, 1);
-    pf.pause(500);
-    pf.control(7, 0, 1);
     pf.pause(1000);
+
+    pf.control(7, 7, 1);
+    pf.pause(500);
     pf.control(0, 0, 1);
-
-    setPen(true)
-
-    for (let i = 1; i <= 7; i++){
-        basic.showNumber(i);
-        pf.control(0, i, 1);
-        pf.pause(3000);
-        pf.control(7, 0, 1);
-        pf.pause(1000);
-        pf.control(0, 0, 1);
-    }
 
     basic.clearScreen();
 }
 
 // ----------------
 
-//input.onButtonPressed(Button.A, function () {
-    // Two lines
-    // draw([
-    //     [[5,5],[10,5]],
-    //     [[10,10],[5,10]],
-    // ])
+// Init
+initialized();
+// pf.debug = true;
 
-    // Checking changing direction fix
-    // draw([
-    //     [[0,10],[0,0]],
-    //     [[10,0],[0,0]],
-    // ])
+function alphabet(letter: string){
+    let alphabet: { [key: string]: number[][][] } = {
+        // A: [
+        //     [[0,0],[0,2]],
+        //     [[0,2],[1,2]],
+        //     [[1,2],[1,0]],
+        //     [[0,1],[1,1]],
+        // ],
+        // B: [
+        //     [[0,0],[0,2]],
+        //     [[0,2],[1,2]],
+        //     [[1,2],[1,0]],
+        //     [[1,0],[0,0]],
+        //     [[0,1],[1,1]],
+        // ],
+        // S: [
+        //     [[0,0],[1,0]],
+        //     [[1,0],[1,1]],
+        //     [[1,1],[0,1]],
+        //     [[0,1],[0,2]],
+        //     [[0,2],[1,2]],
+        // ],
+        // I: [
+        //     [[0,0],[0,2]],
+        // ],
+        // N: [
+        //     [[0,0],[0,2]],
+        //     // [[0,2],[0.5,2]],
+        //     // [[0.5,2],[0.5,1]],
+        //     // [[0.5,1],[1,1]],
+        //     [[0,2],[2,0]],
+        //     [[2,0],[2,2]],
+        // ],
+        // T: [
+        //     [[0.5,0],[0.5,2]],
+        //     [[0,2],[1,2]],
+        // ],
+        O: [
+            [[1,0],[0,0]],
+            [[0,0],[0,2]],
+            [[0,2],[1,2]],
+            [[1,2],[1,0]],
+        ],
+        G: [
+            [[0,1],[1,1]],
+            [[1,1],[1,0]],
+            [[1,0],[0,0]],
+            [[0,0],[0,2]],
+            [[0,2],[1,2]],
+        ],
+        E: [
+            [[1,0],[0,0]],
+            [[0,0],[0,2]],
+            [[0,2],[1,2]],
+            [[0,1],[1,1]],
+        ],
+        L: [
+            [[0,2],[0,0]],
+            [[0,0],[1,0]],
+        ],
+    }
 
-    // Test
-    // draw([
-    //     [[0,0],[5,-5]],
-    //     [[5,-5],[0,0]],
-    // ])
+    return alphabet[letter] || []
+}
 
-    // Point
-    // draw([
-    //     [[0,5],[0,5]],
-    //     [[0,10],[0,10]],
-    // ])
 
-    // Rect
+function print(text: string){
+    let scale = 5;
+    let letters = text.split('');
+
+    for (let n = 0; n < letters.length; n++){
+        basic.showString(letters[n])
+        let letter = alphabet(letters[n]);
+        let letterSpacing = n > 0 ? 1 * scale : 0;
+        
+        if (letter) {
+            // Calibrate
+            for (let r = 0; r < letter.length; r++){
+                letter[r][0][0] *= scale;
+                letter[r][0][1] *= scale;
+
+                letter[r][1][0] *= scale;
+                letter[r][1][1] *= scale;
+
+                letter[r][0][0] += lastPosition[0] + letterSpacing;
+                letter[r][1][0] += lastPosition[0] + letterSpacing;
+            }
+        }
+
+        draw(letter)
+    }
+}
+
+input.onButtonPressed(Button.A, function () {
+    // Test - horizontal lines, up and down
+
     // draw([
     //     [[0,0],[10,0]],
     //     [[10,0],[10,10]],
     //     [[10,10],[0,10]],
-    //     [[0,10],[0,0]],
+    //     [[0,10],[0,20]],
+    //     [[0,20],[10,20]],
+    //     [[10,20],[10,30]],
+    //     [[10,30],[0,30]],
+
+    //     [[5,30],[15,30]],
+    //     [[15,30],[15,20]],
+    //     [[15,20],[5,20]],
+    //     [[5,20],[5,10]],
+    //     [[5,10],[15,10]],
+    //     [[15,10],[15,0]],
+    //     [[15,0],[5,0]],
     // ])
 
-    // Rect in rect
+    // ---
+
+    // let drawPoints = [];
+
+    // for (let i = 0; i < 3; i++){
+    //     drawPoints.push([[10 * i,0],[10 * i,5]])
+    //     drawPoints.push([[10 * i,5],[5 + 10 * i,5]])
+    //     drawPoints.push([[5 + 10 * i,5],[5 + 10 * i,0]])
+    //     drawPoints.push([[5 + 10 * i,0],[10 + 10 * i,0]])
+    // }
+
+    // drawPoints.push([[0,0],[0,0]])
+
+    // draw(drawPoints)
+
+    print("BASIA")
+})
+
+input.onButtonPressed(Button.B, function () {
+    // Test - vertical lines, right and left
+
     // draw([
-    //     [[0,0],[20,0]],
-    //     [[20,0],[20,20]],
-    //     [[20,20],[0,20]],
-    //     [[0,20],[0,0]],
-    
-    //     [[5,5],[15,5]],
-    //     [[15,5],[15,15]],
-    //     [[15,15],[5,15]],
-    //     [[5,15],[5,5]],
+    //     [[0, 0],[0,10]],
+    //     [[10, 10],[10,0]],
+    //     [[20, 0],[20,10]],
+    //     [[30, 10],[30,0]],
+
+    //     [[30, 5],[30,15]],
+    //     [[20, 15],[20,5]],
+    //     [[10, 5],[10,15]],
+    //     [[0, 15],[0,5]],
     // ])
 
-    // House
-    // draw([
-    //     [[0,0],[20,0]],
-    //     [[20,0],[20,20]],
+    // --
 
-    //     [[20,20],[10,30]],
-    //     [[20,20],[0,20]],
-    //     [[0,20],[10,30]],
+    // let drawPoints = [];
 
-    //     // Dach
-    //     // [[10,30],[0,20]],
-    //     // // [[0,20],[20,20]],
+    // for (let i = 0; i < 3; i++){
+    //     drawPoints.push([[0,10 * i],[5,10 * i]])
+    //     drawPoints.push([[5,10 * i],[5,5 + 10 * i]])
+    //     drawPoints.push([[5,5 + 10 * i],[0,5 + 10 * i]])
+    //     drawPoints.push([[0,5 + 10 * i],[0,10 + 10 * i]])
+    // }
 
-    //     // [[0,20],[0,0]],
+    // drawPoints.push([[0,0],[0,0]])
 
-    //     // Okno
-    //     [[5,5],[15,5]],
-    //     [[15,5],[15,15]],
-    //     [[15,15],[5,15]],
-    //     [[5,15],[5,5]],
-    // ])
+    // draw(drawPoints)
 
-    // Diagonal lines
-    // draw([
-    //     [[0,0],[20,20]],
-    //     [[20,0],[0,20]]
-    // ])
+    // print("ANTOS")
+    // print("OS")
 
-    // Triangular
+    // for (let i = 0; i < 10; i++){
+    //     let timeStart = input.runningTime();
+    //     basic.pause(1000)
+    //     let timeStop = input.runningTime();
+    //     let runTime = timeStop - timeStart;
+    //     serial.writeLine(JSON.stringify({dt: runTime - 1000}))
+    // }
+
+    print("LEGO")
+})
+
+input.onButtonPressed(Button.AB, function () {
     // draw([
     //     [[0,0],[10,10]],
     //     [[10,10],[20,0]],
-    //     [[20,0],[0,0]],
+    //     [[20,0],[30,10]],
+    //     [[30,10],[40,0]],
+
+
+    //     [[40,0],[30,-10]],
+    //     [[30,-10],[20,0]],
+    //     [[20,0],[10,-10]],
+    //     [[10,-10],[0,0]],
     // ])
-
-    // Rect corners (points)
-    // draw([
-    //     [[0,0],[0,0]],
-    //     [[20,0],[20,0]],
-    //     [[20,20],[20,20]],
-    //     [[0,20],[0,20]],
-    // ])
-
-
-
-    //basic.clearScreen()
-//})
-
-//input.onButtonPressed(Button.B, function () {
-    // pf.stop()
-    // calibrate()
-
-    // Test
-    // draw([
-    //     [[5,5],[15,5]],
-    //     [[15,5],[15,15]],
-    //     [[15,15],[5,15]],
-    //     [[5,15],[5,5]],
-    // ])
-
-    // Test
-    // draw([
-    //     [[0,0],[20,0]],
-    //     [[20,5],[0,5]],
-    //     [[0,10],[20,10]],
-    //     [[20,15],[0,15]],
-    //     [[0,20],[20,20]],
-    // ])
-
-    // draw([
-    //     [[20,20],[20,0]],
-    //     [[15,0],[15,20]],
-    //     [[10,20],[10,0]],
-    //     [[5,0],[5,20]],
-    //     [[0,20],[0,0]],
-    // ])
-
-
-//})
-
-// Emergency stop
-// input.onLogoEvent(TouchButtonEvent.Pressed, function () {
-//     pf.control(0, 0, 1)
-//     pf.control(0, 0, 2)
-//     pf.control(0, 0, 3)
-//     pf.control(0, 0, 4)
-// })
-
-// Init
-initialized();
-pf.debug = true;
-
-function alphabet(letter: string){
-    let alphabet: { [key: string]: number[][][] } = {
-        A: [
-            [[0,0],[0,2]],
-            [[0,2],[1,2]],
-            [[1,2],[1,0]],
-            [[0,1],[1,1]],
-        ],
-        B: [
-            [[0,0],[0,2]],
-            [[0,2],[1,2]],
-            [[1,2],[1,0]],
-            [[1,0],[0,0]],
-            [[0,1],[1,1]],
-        ],
-        S: [
-            [[0,0],[1,0]],
-            [[1,0],[1,1]],
-            [[1,1],[0,1]],
-            [[0,1],[0,2]],
-            [[0,2],[1,2]],
-        ],
-        I: [
-            [[0,0],[0,2]],
-        ],
-        N: [
-            [[0,0],[0,2]],
-            [[0,2],[2,0]],
-            [[2,0],[2,2]],
-        ],
-        T: [
-            [[0.5,0],[0.5,2]],
-            [[0,2],[1,2]],
-        ]
-    }
-
-    // console.log(alphabet[letter]);
-    serial.writeLine(letter);
-    return alphabet[letter];
-}
-
-
-function menuItem1() {
-    input.onButtonPressed(Button.A, function () {
-        // Diagonal
-        // draw([
-        //     [[0,0],[20,20]],
-        //     [[20,20],[0,0]]
-        // ])
-
-        // Diagonal lines
-        // draw([
-        //     [[0,0],[20,20]],
-        //     [[20,0],[0,20]]
-        // ])
-
-        // draw([
-        //     [[0,0],[5,0]],
-        //     [[5,0],[5,5]],
-        //     [[5,5],[10,5]],
-        //     [[10,5],[10,0]],
-        //     [[10,0],[15,0]],
-        //     [[15,0],[15,5]],
-        //     [[15,5],[20,5]],
-        //     [[20,5],[20,0]],
-        // ])
-
-        // Test
-
-        // let drawPoints = [];
-
-        // for (let i = 0; i < 3; i++){
-        //     drawPoints.push([[10 * i,0],[10 * i,5]])
-        //     drawPoints.push([[10 * i,5],[5 + 10 * i,5]])
-        //     drawPoints.push([[5 + 10 * i,5],[5 + 10 * i,0]])
-        //     drawPoints.push([[5 + 10 * i,0],[10 + 10 * i,0]])
-        // }
-
-        // drawPoints.push([[0,0],[0,0]])
-
-        // draw(drawPoints)
-
-        // ---
-        let scale = 5;
-        // let text = 'BASIA';
-        let text = 'ANTOS';
-        let letters = text.split('');
-
-        for (let n = 0; n < letters.length; n++){
-            let letter = alphabet(letters[n]);
-            let letterSpacing = n > 0 ? 1 * scale : 0;
-            
-            // console.log(letters[n])
-            // console.log(JSON.stringify(lastPosition))
-            // console.log(shift)
-
-            if (letter) {
-                // Calibrate
-                for (let r = 0; r < letter.length; r++){
-                    letter[r][0][0] *= scale;
-                    letter[r][0][1] *= scale;
-
-                    letter[r][1][0] *= scale;
-                    letter[r][1][1] *= scale;
-
-                    letter[r][0][0] += lastPosition[0] + letterSpacing;
-                    letter[r][1][0] += lastPosition[0] + letterSpacing;
-                }
-
-                // console.log(JSON.stringify(letter))
-            }
-
-            draw(letter)
-        }
-    })
-
-    input.onButtonPressed(Button.B, function () {
-        // Rect net
-        // draw([
-        //     [[0,0],[10,0]],
-        //     [[10,5],[0,5]],
-        //     [[0,10],[10,10]],
-
-        //     [[10,10],[10,0]],
-        //     [[5,0],[5,10]],
-        //     [[0,10],[0,0]],
-        // ])
-
-        // let drawPoints = [];
-
-        // for (let i = 0; i < 3; i++){
-        //     drawPoints.push([[0,10 * i],[5,10 * i]])
-        //     drawPoints.push([[5,10 * i],[5,5 + 10 * i]])
-        //     drawPoints.push([[5,5 + 10 * i],[0,5 + 10 * i]])
-        //     drawPoints.push([[0,5 + 10 * i],[0,10 + 10 * i]])
-        // }
-
-        // drawPoints.push([[0,0],[0,0]])
-
-        // draw(drawPoints)
-    })
-}
-
-// function menuItem2() {
-//     input.onButtonPressed(Button.A, function () {
-//         // Rect
-//         draw([
-//             [[0,0],[10,0]],
-//             [[10,0],[10,10]],
-//             [[10,10],[0,10]],
-//             [[0,10],[0,0]],
-//         ])
-//     })
-
-//     input.onButtonPressed(Button.B, function () {
-//         // Rect in rect
-//         draw([
-//             [[0,0],[20,0]],
-//             [[20,0],[20,20]],
-//             [[20,20],[0,20]],
-//             [[0,20],[0,0]],
-        
-//             // [[5,5],[15,5]],
-//             // [[15,5],[15,15]],
-//             // [[15,15],[5,15]],
-//             // [[5,15],[5,5]],
-
-//             [[10,10],[20,10]],
-//             [[20,5],[20,20]],
-//             [[20,20],[10,20]],
-//             [[10,20],[10,10]],
-//         ])
-//     })
-// }
-
-function menuItem3() {
-    input.onButtonPressed(Button.A, function () {
-        // Rect corners (points)
-        draw([
-            [[0,0],[0,0]],
-            [[20,0],[20,0]],
-            [[20,20],[20,20]],
-            [[0,20],[0,20]],
-        ])
-    })
-
-    input.onButtonPressed(Button.B, function () {
-        // Triangular
-        // draw([
-        //     [[0,0],[10,10]],
-        //     [[10,10],[20,0]],
-        //     [[20,0],[0,0]],
-        // ])
-
-        // House
-        draw([
-            [[0,0],[20,0]],
-            [[20,0],[20,20]],
-
-            [[20,20],[10,30]],
-            [[10,30],[0,20]],
-            [[0,20],[0,0]],
-
-            // Okno
-            [[5,5],[15,5]],
-            [[15,5],[15,15]],
-            [[15,15],[5,15]],
-            [[5,15],[5,5]],
-        ])
-    })
-}
-
-// function menuItem4() {
-//     let counter = 0;
-//     let isPressed = false;
-
-//     input.onButtonPressed(Button.B, function () {
-//         basic.showNumber(counter)
-//     })
-
-//     basic.forever(function () {
-//         if (pins.digitalReadPin(DigitalPin.P0)){
-//             // basic.showIcon(IconNames.Heart)
-//             if (!isPressed){
-//                 counter += 1;
-//                 isPressed = true;
-//                 // basic.showNumber(counter)
-//             }
-//         } else {
-//             isPressed = false;
-//         }
-
-//         basic.pause(10)
-//     })
-// }
-
-// --- Menu ---
-
-function loadMenuProgram(){
-    menu.items[menu.selected]()
-
-    basic.showNumber(menu.selected + 1)
-}
-
-let menu = {
-    selected: 0,
-    items: [
-        menuItem1,
-        // menuItem2,
-        // menuItem4
-    ]
-}
-
-loadMenuProgram();
-
-input.onLogoEvent(TouchButtonEvent.Pressed, function () {
-	if (menu.selected + 1 < menu.items.length){
-        menu.selected += 1;
-    } else {
-        menu.selected = 0
-    }
-
-    loadMenuProgram();
 })
