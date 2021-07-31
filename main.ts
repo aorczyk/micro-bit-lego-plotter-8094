@@ -7,6 +7,8 @@
 // Funkcja do rysowania skośnej lini metodą schodkową
 // Funkcja do rysowania skośnej lini za pomocą zmiany prędkości silników.
 
+let pf = new LegoPFcontrol();
+
 // 5 s distance in mm
 // Minimal run time: 500 ms
 const speed2distanceTime = 5000;
@@ -28,14 +30,14 @@ function setPen(status: boolean){
     }
 
     if (status){
-        pf.red(7, 2)
-        pf.pause(1000)
+        pf.speed(2, 'red', 7)
+        basic.pause(1000)
 
         penStatus = true
         basic.showIcon(IconNames.SmallDiamond)
     } else {
-        pf.red(0, 2)
-        pf.pause(1000)
+        pf.speed(2, 'red', 0)
+        basic.pause(1000)
 
         penStatus = false
         basic.showIcon(IconNames.Diamond)
@@ -69,7 +71,6 @@ let lastVerticalDirection = 1;
 let lastHorizontalDirection = 1;
 
 function draw(drawQueue: number[][][]){
-    let debug = false;
     let speed = 7;
     let fixedHorizontalDistance = 1.5;
     let fixedVerticalDistance = 1.0;
@@ -77,11 +78,10 @@ function draw(drawQueue: number[][][]){
     while (drawQueue.length){
         let item = drawQueue.shift();
 
-        // serial.writeLine(JSON.stringify(item));
-
         for (let i = 0; i <= 1; i++){
-            // pf.pause(1000);         
             let point = item[i];
+
+            // Horizontal
 
             let horizontalDistance = Math.abs(lastPosition[0] - point[0]);
             let horizontalDirection = point[0] > lastPosition[0] ? 1 : point[0] < lastPosition[0] ? -1 : 0;
@@ -95,6 +95,8 @@ function draw(drawQueue: number[][][]){
 
             let horizontalPauseTime = Math.floor(horizontalTime + horizontalFixTime);
 
+            // Vertical
+
             let verticalDistance = Math.abs(lastPosition[1] - point[1]);
             let verticalDirection = point[1] > lastPosition[1] ? 1 : point[1] < lastPosition[1] ? -1 : 0;
             let verticalTime = getTimeForDistance(verticalDistance, speed, 0);
@@ -107,6 +109,8 @@ function draw(drawQueue: number[][][]){
 
             let verticalPauseTime = Math.floor(verticalTime + verticalFixTime);
 
+            // Set pen and display direction
+
             if (verticalDistance || horizontalDistance){
                 setPen(!!i);
                 displayDirection(horizontalDirection, verticalDirection)
@@ -117,58 +121,64 @@ function draw(drawQueue: number[][][]){
                 setPen(true);
             }
 
-            if (penStatus == true && verticalDistance && horizontalDistance && Math.abs(verticalDistance) == Math.abs(horizontalDistance)){               
-                // pf.control(speed * horizontalDirection, speed * verticalDirection, 1);
-                // pf.pause(horizontalPauseTime)
-                // pf.control(0, 0, 1);
-                
+            if (penStatus == true && verticalDistance && horizontalDistance && Math.abs(verticalDistance) == Math.abs(horizontalDistance)){                              
                 if (verticalFixTime && horizontalFixTime){
                     if (verticalFixTime > horizontalFixTime){
-                        pf.blue(speed * verticalDirection, 1);
-                        pf.pause(verticalFixTime - horizontalFixTime)
-                        pf.red(speed * horizontalDirection, 1);
-                        pf.pause(horizontalPauseTime)
+                        pf.speed(1, 'blue', speed * verticalDirection)
+                        basic.pause(verticalFixTime - horizontalFixTime)
+                        pf.speed(1, 'red', speed * horizontalDirection)
+                        basic.pause(horizontalPauseTime)
                     } else {
-                        pf.red(speed * horizontalDirection, 1);
-                        pf.pause(horizontalFixTime - verticalFixTime)
-                        pf.blue(speed * verticalDirection, 1);
-                        pf.pause(verticalPauseTime)
+                        pf.speed(1, 'red', speed * horizontalDirection)
+                        basic.pause(horizontalFixTime - verticalFixTime)
+                        pf.speed(1, 'blue', speed * verticalDirection)
+                        basic.pause(verticalPauseTime)
                     }
                 } else if (verticalFixTime){
-                    pf.blue(speed * verticalDirection, 1);
-                    pf.pause(verticalFixTime)
-                    pf.red(speed * horizontalDirection, 1);
-                    pf.pause(verticalTime)
+                    pf.speed(1, 'blue', speed * verticalDirection)
+                    basic.pause(verticalFixTime)
+                    pf.speed(1, 'red', speed * horizontalDirection)
+                    basic.pause(verticalTime)
                 } else if (horizontalFixTime){
-                    pf.red(speed * horizontalDirection, 1);
-                    pf.pause(horizontalFixTime)
-                    pf.blue(speed * verticalDirection, 1);
-                    pf.pause(horizontalTime)
+                    pf.speed(1, 'red', speed * horizontalDirection)
+                    basic.pause(horizontalFixTime)
+                    pf.speed(1, 'blue', speed * verticalDirection)
+                    basic.pause(horizontalTime)
                 } else {
-                    pf.control(speed * horizontalDirection, speed * verticalDirection, 1);
-                    pf.pause(horizontalPauseTime)
+                    pf.speed(1, 'red', speed * horizontalDirection)
+                    pf.speed(1, 'blue', speed * verticalDirection)
+                    basic.pause(horizontalPauseTime)
                 }
 
-                pf.control(0, 0, 1);
+                pf.speed(1, 'red', 0)
+                pf.speed(1, 'blue', 0)
             } else {
                 if (horizontalDistance){
                     let timeStart = input.runningTime();
-                    pf.red(speed * horizontalDirection, 1);
-                    pf.pause(horizontalPauseTime)
-                    let timeStop = input.runningTime();
-                    let runTime = timeStop - timeStart;
-                    serial.writeLine(JSON.stringify({c: 'red', dt: runTime - horizontalPauseTime, pauseTime: horizontalPauseTime, timeStart: timeStart}))
-                    pf.red(0, 1);
+
+                    pf.speed(1, 'red', speed * horizontalDirection)
+                    basic.pause(horizontalPauseTime)
+
+                    // let timeStop = input.runningTime();
+
+                    pf.speed(1, 'red', 0)
+
+                    // let runTime = timeStop - timeStart;
+                    // serial.writeLine(JSON.stringify({c: 'red', dt: runTime - horizontalPauseTime, pauseTime: horizontalPauseTime, timeStart: timeStart}))
                 }
 
                 if (verticalDistance){
                     let timeStart = input.runningTime();
-                    pf.blue(speed * verticalDirection, 1);
-                    pf.pause(verticalPauseTime)
-                    let timeStop = input.runningTime();
-                    let runTime = timeStop - timeStart;
-                    serial.writeLine(JSON.stringify({c: 'blue', dt: runTime - verticalPauseTime, pauseTime: verticalPauseTime, timeStart: timeStart}))
-                    pf.blue(0, 1);
+
+                    pf.speed(1, 'blue', speed * verticalDirection)
+                    basic.pause(verticalPauseTime)
+                    
+                    // let timeStop = input.runningTime();
+
+                    pf.speed(1, 'blue', 0)
+
+                    // let runTime = timeStop - timeStart;
+                    // serial.writeLine(JSON.stringify({c: 'blue', dt: runTime - verticalPauseTime, pauseTime: verticalPauseTime, timeStart: timeStart}))
                 }
             }
 
@@ -182,16 +192,26 @@ function draw(drawQueue: number[][][]){
 
 
 function initialized(){
+    // pf.debug = true;
+
     basic.showString("I");
     lastVerticalDirection = 1;
     lastHorizontalDirection = 1;
     
-    pf.direction('right', 'left', 1)
-    pf.pause(1000);
+    powerfunctions.setMotorDirection(PowerFunctionsMotor.Red1, PowerFunctionsDirection.Right)
+    basic.pause(100);
+    powerfunctions.setMotorDirection(PowerFunctionsMotor.Blue1, PowerFunctionsDirection.Left)
+    basic.pause(100);
 
-    pf.control(7, 7, 1);
-    pf.pause(500);
-    pf.control(0, 0, 1);
+    pf.speed(1, 'red', -7);
+    pf.speed(1, 'blue', -7);
+    basic.pause(500);
+    pf.speed(1, 'red', 7);
+    pf.speed(1, 'blue', 7);
+    basic.pause(500);
+    pf.speed(1, 'red', 0);
+    pf.speed(1, 'blue', 0);
+    basic.pause(500);
 
     basic.clearScreen();
 }
@@ -200,68 +220,20 @@ function initialized(){
 
 // Init
 initialized();
-// pf.debug = true;
+
 
 function alphabet(letter: string){
     let alphabet: { [key: string]: number[][][] } = {
-        // A: [
-        //     [[0,0],[0,2]],
-        //     [[0,2],[1,2]],
-        //     [[1,2],[1,0]],
-        //     [[0,1],[1,1]],
-        // ],
-        // B: [
-        //     [[0,0],[0,2]],
-        //     [[0,2],[1,2]],
-        //     [[1,2],[1,0]],
-        //     [[1,0],[0,0]],
-        //     [[0,1],[1,1]],
-        // ],
-        // S: [
-        //     [[0,0],[1,0]],
-        //     [[1,0],[1,1]],
-        //     [[1,1],[0,1]],
-        //     [[0,1],[0,2]],
-        //     [[0,2],[1,2]],
-        // ],
-        // I: [
-        //     [[0,0],[0,2]],
-        // ],
-        // N: [
-        //     [[0,0],[0,2]],
-        //     // [[0,2],[0.5,2]],
-        //     // [[0.5,2],[0.5,1]],
-        //     // [[0.5,1],[1,1]],
-        //     [[0,2],[2,0]],
-        //     [[2,0],[2,2]],
-        // ],
-        // T: [
-        //     [[0.5,0],[0.5,2]],
-        //     [[0,2],[1,2]],
-        // ],
-        O: [
-            [[1,0],[0,0]],
-            [[0,0],[0,2]],
-            [[0,2],[1,2]],
-            [[1,2],[1,0]],
-        ],
-        G: [
-            [[0,1],[1,1]],
-            [[1,1],[1,0]],
-            [[1,0],[0,0]],
-            [[0,0],[0,2]],
-            [[0,2],[1,2]],
-        ],
-        E: [
-            [[1,0],[0,0]],
-            [[0,0],[0,2]],
-            [[0,2],[1,2]],
-            [[0,1],[1,1]],
-        ],
-        L: [
-            [[0,2],[0,0]],
-            [[0,0],[1,0]],
-        ],
+        A: [[[0,0],[0,2]],[[0,2],[1,2]],[[1,2],[1,0]],[[0,1],[1,1]]],
+        B: [[[0,0],[0,2]],[[0,2],[1,2]],[[1,2],[1,0]],[[1,0],[0,0]],[[0,1],[1,1]]],
+        S: [[[0,0],[1,0]],[[1,0],[1,1]],[[1,1],[0,1]],[[0,1],[0,2]],[[0,2],[1,2]]],
+        I: [[[0,0],[0,2]]],
+        // N: [[[0,0],[0,2]],[[1,2],[1,0]],[[1,0.5],[0,1.5]]],
+        // T: [[[0.5,0],[0.5,2]],[[0,2],[1,2]]],
+        O: [[[1,0],[0,0]],[[0,0],[0,2]],[[0,2],[1,2]],[[1,2],[1,0]]],
+        G: [[[0.5,1],[1,1]],[[1,1],[1,0]],[[1,0],[0,0]],[[0,0],[0,2]],[[0,2],[1,2]]],
+        E: [[[1,0],[0,0]],[[0,0],[0,2]],[[0,2],[1,2]],[[0,1],[1,1]]],
+        L: [[[0,2],[0,0]],[[0,0],[1,0]]],
     }
 
     return alphabet[letter] || []
@@ -280,14 +252,11 @@ function print(text: string){
         if (letter) {
             // Calibrate
             for (let r = 0; r < letter.length; r++){
-                letter[r][0][0] *= scale;
-                letter[r][0][1] *= scale;
-
-                letter[r][1][0] *= scale;
-                letter[r][1][1] *= scale;
-
-                letter[r][0][0] += lastPosition[0] + letterSpacing;
-                letter[r][1][0] += lastPosition[0] + letterSpacing;
+                for (let i = 0; i < 2; i++){
+                    letter[r][i][0] *= scale;
+                    letter[r][i][1] *= scale;
+                    letter[r][i][0] += lastPosition[0] + letterSpacing;
+                }
             }
         }
 
@@ -316,19 +285,16 @@ input.onButtonPressed(Button.A, function () {
     //     [[15,0],[5,0]],
     // ])
 
-    // ---
+    // Test - horizontal battlements
 
     // let drawPoints = [];
-
     // for (let i = 0; i < 3; i++){
     //     drawPoints.push([[10 * i,0],[10 * i,5]])
     //     drawPoints.push([[10 * i,5],[5 + 10 * i,5]])
     //     drawPoints.push([[5 + 10 * i,5],[5 + 10 * i,0]])
     //     drawPoints.push([[5 + 10 * i,0],[10 + 10 * i,0]])
     // }
-
     // drawPoints.push([[0,0],[0,0]])
-
     // draw(drawPoints)
 
     print("BASIA")
@@ -349,36 +315,25 @@ input.onButtonPressed(Button.B, function () {
     //     [[0, 15],[0,5]],
     // ])
 
-    // --
+    // Test - vertical battlements
 
     // let drawPoints = [];
-
     // for (let i = 0; i < 3; i++){
     //     drawPoints.push([[0,10 * i],[5,10 * i]])
     //     drawPoints.push([[5,10 * i],[5,5 + 10 * i]])
     //     drawPoints.push([[5,5 + 10 * i],[0,5 + 10 * i]])
     //     drawPoints.push([[0,5 + 10 * i],[0,10 + 10 * i]])
     // }
-
     // drawPoints.push([[0,0],[0,0]])
-
     // draw(drawPoints)
-
-    // print("ANTOS")
-    // print("OS")
-
-    // for (let i = 0; i < 10; i++){
-    //     let timeStart = input.runningTime();
-    //     basic.pause(1000)
-    //     let timeStop = input.runningTime();
-    //     let runTime = timeStop - timeStart;
-    //     serial.writeLine(JSON.stringify({dt: runTime - 1000}))
-    // }
 
     print("LEGO")
 })
 
 input.onButtonPressed(Button.AB, function () {
+
+    // Slanting lines up and down ^^
+
     // draw([
     //     [[0,0],[10,10]],
     //     [[10,10],[20,0]],
