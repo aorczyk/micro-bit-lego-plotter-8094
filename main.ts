@@ -9,38 +9,25 @@
 
 let pf = new LegoPFcontrol();
 
-// 5 s distance in mm
-// Minimal run time: 500 ms
-const speed2distanceTime = 5000;
-const speed2distance: { [key: number]: number[] } = {
-    7: [26,29], // pomiar
-}
-
 // Distance in mm
 function getTimeForDistance(distance: number, speed = 7, direction = 1){
-    return Math.floor((distance * speed2distanceTime)/speed2distance[speed][direction]);
+    // Minimal run time: 500 ms
+    // 5 s distance in mm
+    let speed2distance: { [key: number]: number[] } = {
+        7: [26, 29], // pomiar
+    }
+    return Math.floor((distance * 5000)/speed2distance[speed][direction]);
 }
 
 // Pen on/off
 let penStatus = false;
 
 function setPen(status: boolean){
-    if (penStatus == status){
-        return;
-    }
-
-    if (status){
-        pf.speed(2, 'red', 7)
+    if (penStatus != status){
+        pf.speed(2, 'red', status ? 7 : 0)
         basic.pause(1000)
-
-        penStatus = true
-        basic.showIcon(IconNames.SmallDiamond)
-    } else {
-        pf.speed(2, 'red', 0)
-        basic.pause(1000)
-
-        penStatus = false
-        basic.showIcon(IconNames.Diamond)
+        penStatus = status
+        basic.showIcon(status ? IconNames.SmallDiamond : IconNames.Diamond)
     }
 }
 
@@ -154,7 +141,7 @@ function draw(drawQueue: number[][][]){
                 pf.speed(1, 'blue', 0)
             } else {
                 if (horizontalDistance){
-                    let timeStart = input.runningTime();
+                    // let timeStart = input.runningTime();
 
                     pf.speed(1, 'red', speed * horizontalDirection)
                     basic.pause(horizontalPauseTime)
@@ -168,7 +155,7 @@ function draw(drawQueue: number[][][]){
                 }
 
                 if (verticalDistance){
-                    let timeStart = input.runningTime();
+                    // let timeStart = input.runningTime();
 
                     pf.speed(1, 'blue', speed * verticalDirection)
                     basic.pause(verticalPauseTime)
@@ -228,8 +215,8 @@ function alphabet(letter: string){
         B: [[[0,0],[0,2]],[[0,2],[1,2]],[[1,2],[1,0]],[[1,0],[0,0]],[[0,1],[1,1]]],
         S: [[[0,0],[1,0]],[[1,0],[1,1]],[[1,1],[0,1]],[[0,1],[0,2]],[[0,2],[1,2]]],
         I: [[[0,0],[0,2]]],
-        // N: [[[0,0],[0,2]],[[1,2],[1,0]],[[1,0.5],[0,1.5]]],
-        // T: [[[0.5,0],[0.5,2]],[[0,2],[1,2]]],
+        N: [[[0,0],[0,2]],[[1,2],[1,0]],[[1,0.5],[0,1.5]]],
+        T: [[[0.5,0],[0.5,2]],[[0,2],[1,2]]],
         O: [[[1,0],[0,0]],[[0,0],[0,2]],[[0,2],[1,2]],[[1,2],[1,0]]],
         G: [[[0.5,1],[1,1]],[[1,1],[1,0]],[[1,0],[0,0]],[[0,0],[0,2]],[[0,2],[1,2]]],
         E: [[[1,0],[0,0]],[[0,0],[0,2]],[[0,2],[1,2]],[[0,1],[1,1]]],
