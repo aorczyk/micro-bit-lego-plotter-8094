@@ -24,7 +24,7 @@ let penStatus = false;
 
 function setPen(status: boolean){
     if (penStatus != status){
-        pf.speed(2, 'red', status ? 7 : 0)
+        pf.speed(2, 'red', status ? -7 : 0)
         basic.pause(1000)
         penStatus = status
         basic.showIcon(status ? IconNames.SmallDiamond : IconNames.Diamond)
@@ -141,31 +141,29 @@ function draw(drawQueue: number[][][]){
                 pf.speed(1, 'blue', 0)
             } else {
                 if (horizontalDistance){
-                    // let timeStart = input.runningTime();
+                    let timeStart = input.runningTime();
 
                     pf.speed(1, 'red', speed * horizontalDirection)
                     basic.pause(horizontalPauseTime)
 
-                    // let timeStop = input.runningTime();
+                    let runTime = input.runningTime() - timeStart;
 
                     pf.speed(1, 'red', 0)
 
-                    // let runTime = timeStop - timeStart;
-                    // serial.writeLine(JSON.stringify({c: 'red', dt: runTime - horizontalPauseTime, pauseTime: horizontalPauseTime, timeStart: timeStart}))
+                    serial.writeLine(JSON.stringify({c: 'red', dt: runTime - horizontalPauseTime, pauseTime: horizontalPauseTime, runTime: runTime, fixTime: horizontalFixTime}))
                 }
 
                 if (verticalDistance){
-                    // let timeStart = input.runningTime();
+                    let timeStart = input.runningTime();
 
                     pf.speed(1, 'blue', speed * verticalDirection)
                     basic.pause(verticalPauseTime)
                     
-                    // let timeStop = input.runningTime();
+                    let runTime = input.runningTime() - timeStart;
 
                     pf.speed(1, 'blue', 0)
 
-                    // let runTime = timeStop - timeStart;
-                    // serial.writeLine(JSON.stringify({c: 'blue', dt: runTime - verticalPauseTime, pauseTime: verticalPauseTime, timeStart: timeStart}))
+                    serial.writeLine(JSON.stringify({c: 'blue', dt: runTime - verticalPauseTime, pauseTime: verticalPauseTime, runTime: runTime, fixTime: verticalFixTime}))
                 }
             }
 
@@ -180,27 +178,27 @@ function draw(drawQueue: number[][][]){
 
 function initialized(){
     // pf.debug = true;
-
-    basic.showString("I");
-    lastVerticalDirection = 1;
-    lastHorizontalDirection = 1;
     
     powerfunctions.setMotorDirection(PowerFunctionsMotor.Red1, PowerFunctionsDirection.Right)
     basic.pause(100);
     powerfunctions.setMotorDirection(PowerFunctionsMotor.Blue1, PowerFunctionsDirection.Left)
     basic.pause(100);
+    powerfunctions.setMotorDirection(PowerFunctionsMotor.Red2, PowerFunctionsDirection.Right)
+    basic.pause(100);
+
+    pf.speed(2, 'red', 0);
 
     pf.speed(1, 'red', -7);
     pf.speed(1, 'blue', -7);
-    basic.pause(500);
+    basic.pause(1000);
     pf.speed(1, 'red', 7);
     pf.speed(1, 'blue', 7);
-    basic.pause(500);
+    basic.pause(1000);
     pf.speed(1, 'red', 0);
     pf.speed(1, 'blue', 0);
     basic.pause(500);
 
-    basic.clearScreen();
+    basic.showIcon(IconNames.Yes)
 }
 
 // ----------------
@@ -215,8 +213,8 @@ function alphabet(letter: string){
         B: [[[0,0],[0,2]],[[0,2],[1,2]],[[1,2],[1,0]],[[1,0],[0,0]],[[0,1],[1,1]]],
         S: [[[0,0],[1,0]],[[1,0],[1,1]],[[1,1],[0,1]],[[0,1],[0,2]],[[0,2],[1,2]]],
         I: [[[0,0],[0,2]]],
-        N: [[[0,0],[0,2]],[[1,2],[1,0]],[[1,0.5],[0,1.5]]],
-        T: [[[0.5,0],[0.5,2]],[[0,2],[1,2]]],
+        // N: [[[0,0],[0,2]],[[1,2],[1,0]],[[1,0.5],[0,1.5]]],
+        // T: [[[0.5,0],[0.5,2]],[[0,2],[1,2]]],
         O: [[[1,0],[0,0]],[[0,0],[0,2]],[[0,2],[1,2]],[[1,2],[1,0]]],
         G: [[[0.5,1],[1,1]],[[1,1],[1,0]],[[1,0],[0,0]],[[0,0],[0,2]],[[0,2],[1,2]]],
         E: [[[1,0],[0,0]],[[0,0],[0,2]],[[0,2],[1,2]],[[0,1],[1,1]]],
@@ -314,7 +312,8 @@ input.onButtonPressed(Button.B, function () {
     // drawPoints.push([[0,0],[0,0]])
     // draw(drawPoints)
 
-    print("LEGO")
+    // print("LEGO")
+    print("L")
 })
 
 input.onButtonPressed(Button.AB, function () {
