@@ -6,7 +6,7 @@
         "core": "*",
         "radio": "*",
         "microphone": "*",
-        "Lego Power Function Controller": "github:aorczyk/lego-power-function-controller#v2.0.3"
+        "PF Transmitter": "github:aorczyk/lego-pf-transmitter#master"
     },
     "files": [
         "main.ts",
@@ -16,7 +16,7 @@
         "test.ts"
     ],
     "targetVersions": {
-        "target": "4.0.11",
+        "target": "4.0.16",
         "targetId": "microbit"
     },
     "supportedTargets": [

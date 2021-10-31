@@ -7,7 +7,7 @@
 // Funkcja do rysowania skośnej lini metodą schodkową
 // Funkcja do rysowania skośnej lini za pomocą zmiany prędkości silników.
 
-let pf = new LegoPFcontrol();
+pfTransmitter.connectIrSenderLed(AnalogPin.P0)
 
 // Distance in mm
 function getTimeForDistance(distance: number, speed = 7, direction = 1){
@@ -24,7 +24,7 @@ let penStatus = false;
 
 function setPen(status: boolean){
     if (penStatus != status){
-        pf.speed(2, 'red', status ? -7 : 0)
+        pfspeed(2, 'red', status ? -7 : 0)
         basic.pause(1000)
         penStatus = status
         basic.showIcon(status ? IconNames.SmallDiamond : IconNames.Diamond)
@@ -56,6 +56,20 @@ function displayDirection(x: number, y: number){
 let lastPosition = [0,0];
 let lastVerticalDirection = 1;
 let lastHorizontalDirection = 1;
+
+function pfspeed(channel: number, output: string, speed: number){
+    let s = PfSingleOutput.BrakeThenFloat;
+
+    if (speed > 0){
+        s = PfSingleOutput.Forward7;
+    } else if (speed < 0) {
+        s = PfSingleOutput.Backward7;
+    } else {
+        s = PfSingleOutput.BrakeThenFloat;
+    }
+
+    pfTransmitter.singleOutputMode(channel, output == 'red' ? PfOutput.Red : PfOutput.Blue, s)
+}
 
 function draw(drawQueue: number[][][]){
     let speed = 7;
@@ -111,44 +125,54 @@ function draw(drawQueue: number[][][]){
             if (penStatus == true && verticalDistance && horizontalDistance && Math.abs(verticalDistance) == Math.abs(horizontalDistance)){                              
                 if (verticalFixTime && horizontalFixTime){
                     if (verticalFixTime > horizontalFixTime){
-                        pf.speed(1, 'blue', speed * verticalDirection)
+                        pfspeed(1, 'blue', speed * verticalDirection)
                         basic.pause(verticalFixTime - horizontalFixTime)
-                        pf.speed(1, 'red', speed * horizontalDirection)
+                        pfspeed(1, 'red', speed * horizontalDirection)
                         basic.pause(horizontalPauseTime)
                     } else {
-                        pf.speed(1, 'red', speed * horizontalDirection)
+                        pfspeed(1, 'red', speed * horizontalDirection)
                         basic.pause(horizontalFixTime - verticalFixTime)
-                        pf.speed(1, 'blue', speed * verticalDirection)
+                        pfspeed(1, 'blue', speed * verticalDirection)
                         basic.pause(verticalPauseTime)
                     }
                 } else if (verticalFixTime){
-                    pf.speed(1, 'blue', speed * verticalDirection)
+                    pfspeed(1, 'blue', speed * verticalDirection)
                     basic.pause(verticalFixTime)
-                    pf.speed(1, 'red', speed * horizontalDirection)
+                    pfspeed(1, 'red', speed * horizontalDirection)
                     basic.pause(verticalTime)
                 } else if (horizontalFixTime){
-                    pf.speed(1, 'red', speed * horizontalDirection)
+                    pfspeed(1, 'red', speed * horizontalDirection)
                     basic.pause(horizontalFixTime)
-                    pf.speed(1, 'blue', speed * verticalDirection)
+                    pfspeed(1, 'blue', speed * verticalDirection)
                     basic.pause(horizontalTime)
                 } else {
-                    pf.speed(1, 'red', speed * horizontalDirection)
-                    pf.speed(1, 'blue', speed * verticalDirection)
+                    // pfspeed(1, 'red', speed * horizontalDirection)
+                    // pfspeed(1, 'blue', speed * verticalDirection)
+                    pfTransmitter.comboPWMMode(
+                        PfChannel.Channel1, 
+                        horizontalDirection > 0 ? PfComboPWM.Forward7 : PfComboPWM.Backward7,
+                        verticalDirection > 0 ? PfComboPWM.Forward7 : PfComboPWM.Backward7,
+                    )
                     basic.pause(horizontalPauseTime)
                 }
 
-                pf.speed(1, 'red', 0)
-                pf.speed(1, 'blue', 0)
+                // pfspeed(1, 'red', 0)
+                // pfspeed(1, 'blue', 0)
+                pfTransmitter.comboPWMMode(
+                    PfChannel.Channel1,
+                    PfComboPWM.BrakeThenFloat,
+                    PfComboPWM.BrakeThenFloat
+                )
             } else {
                 if (horizontalDistance){
                     let timeStart = input.runningTime();
 
-                    pf.speed(1, 'red', speed * horizontalDirection)
+                    pfspeed(1, 'red', speed * horizontalDirection)
                     basic.pause(horizontalPauseTime)
 
                     let runTime = input.runningTime() - timeStart;
 
-                    pf.speed(1, 'red', 0)
+                    pfspeed(1, 'red', 0)
 
                     serial.writeLine(JSON.stringify({c: 'red', dt: runTime - horizontalPauseTime, pauseTime: horizontalPauseTime, runTime: runTime, fixTime: horizontalFixTime}))
                 }
@@ -156,12 +180,12 @@ function draw(drawQueue: number[][][]){
                 if (verticalDistance){
                     let timeStart = input.runningTime();
 
-                    pf.speed(1, 'blue', speed * verticalDirection)
+                    pfspeed(1, 'blue', speed * verticalDirection)
                     basic.pause(verticalPauseTime)
                     
                     let runTime = input.runningTime() - timeStart;
 
-                    pf.speed(1, 'blue', 0)
+                    pfspeed(1, 'blue', 0)
 
                     serial.writeLine(JSON.stringify({c: 'blue', dt: runTime - verticalPauseTime, pauseTime: verticalPauseTime, runTime: runTime, fixTime: verticalFixTime}))
                 }
@@ -177,26 +201,39 @@ function draw(drawQueue: number[][][]){
 
 
 function initialized(){
-    // pf.debug = true;
-    
-    powerfunctions.setMotorDirection(PowerFunctionsMotor.Red1, PowerFunctionsDirection.Right)
-    basic.pause(100);
-    powerfunctions.setMotorDirection(PowerFunctionsMotor.Blue1, PowerFunctionsDirection.Left)
-    basic.pause(100);
-    powerfunctions.setMotorDirection(PowerFunctionsMotor.Red2, PowerFunctionsDirection.Right)
-    basic.pause(100);
+    pfspeed(2, 'red', 0);
 
-    pf.speed(2, 'red', 0);
+    led.plot(0, 2)
 
-    pf.speed(1, 'red', -7);
-    pf.speed(1, 'blue', -7);
+    pfTransmitter.comboPWMMode(
+        PfChannel.Channel1,
+        PfComboPWM.Backward7,
+        PfComboPWM.Backward7
+    )
+
     basic.pause(1000);
-    pf.speed(1, 'red', 7);
-    pf.speed(1, 'blue', 7);
+
+    led.plot(1, 2)
+
+    pfTransmitter.comboPWMMode(
+        PfChannel.Channel1,
+        PfComboPWM.Forward7,
+        PfComboPWM.Forward7
+    )
+
     basic.pause(1000);
-    pf.speed(1, 'red', 0);
-    pf.speed(1, 'blue', 0);
+
+    led.plot(2, 2)
+
+    pfTransmitter.comboPWMMode(
+        PfChannel.Channel1,
+        PfComboPWM.BrakeThenFloat,
+        PfComboPWM.BrakeThenFloat
+    )
+
     basic.pause(500);
+
+    led.plot(3, 2)
 
     basic.showIcon(IconNames.Yes)
 }
@@ -214,11 +251,15 @@ function alphabet(letter: string){
         S: [[[0,0],[1,0]],[[1,0],[1,1]],[[1,1],[0,1]],[[0,1],[0,2]],[[0,2],[1,2]]],
         I: [[[0,0],[0,2]]],
         // N: [[[0,0],[0,2]],[[1,2],[1,0]],[[1,0.5],[0,1.5]]],
-        // T: [[[0.5,0],[0.5,2]],[[0,2],[1,2]]],
+        T: [[[0.5,0],[0.5,2]],[[0,2],[1,2]]],
         O: [[[1,0],[0,0]],[[0,0],[0,2]],[[0,2],[1,2]],[[1,2],[1,0]]],
         G: [[[0.5,1],[1,1]],[[1,1],[1,0]],[[1,0],[0,0]],[[0,0],[0,2]],[[0,2],[1,2]]],
         E: [[[1,0],[0,0]],[[0,0],[0,2]],[[0,2],[1,2]],[[0,1],[1,1]]],
         L: [[[0,2],[0,0]],[[0,0],[1,0]]],
+        M: [[[0, 0], [0, 2]], [[0, 2], [1, 1]], [[1, 1], [2, 2]], [[2, 2], [2, 0]]],
+        C: [[[1, 0], [0, 0]], [[0, 0], [0, 2]], [[0, 2], [1, 2]]],
+        R: [[[0, 0], [0, 2]], [[0, 2], [1, 2]], [[1, 2], [1, 1]], [[1, 1], [0, 1]], [[0, 1], [1, 0]]],
+        ':': [[[0, 0.5], [0, 0.5]], [[0, 1.5], [0, 1.5]]],
     }
 
     return alphabet[letter] || []
@@ -282,7 +323,9 @@ input.onButtonPressed(Button.A, function () {
     // drawPoints.push([[0,0],[0,0]])
     // draw(drawPoints)
 
-    print("BASIA")
+    // print("BASIA")
+    // print("MICRO:BIT")
+    print(":BIT")
 })
 
 input.onButtonPressed(Button.B, function () {
