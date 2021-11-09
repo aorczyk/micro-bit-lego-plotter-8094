@@ -356,7 +356,7 @@ input.onButtonPressed(Button.B, function () {
     // draw(drawPoints)
 
     // print("LEGO")
-    print("L")
+    print("M")
 })
 
 input.onButtonPressed(Button.AB, function () {
