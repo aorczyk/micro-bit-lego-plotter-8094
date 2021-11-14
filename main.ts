@@ -24,7 +24,7 @@ let penStatus = false;
 
 function setPen(status: boolean){
     if (penStatus != status){
-        pfspeed(2, 'red', status ? -7 : 0)
+        pfspeed(1, 'red', status ? 7 : 0)
         basic.pause(1000)
         penStatus = status
         basic.showIcon(status ? IconNames.SmallDiamond : IconNames.Diamond)
@@ -60,10 +60,10 @@ let lastHorizontalDirection = 1;
 function pfspeed(channel: number, output: string, speed: number){
     let s = PfSingleOutput.BrakeThenFloat;
 
-    if (speed > 0){
-        s = PfSingleOutput.Forward7;
-    } else if (speed < 0) {
-        s = PfSingleOutput.Backward7;
+    if (speed < 0){
+        s = output == 'red' ? PfSingleOutput.Backward7 : PfSingleOutput.Forward7;
+    } else if (speed > 0) {
+        s = output == 'red' ? PfSingleOutput.Forward7 : PfSingleOutput.Backward7;
     } else {
         s = PfSingleOutput.BrakeThenFloat;
     }
@@ -125,54 +125,54 @@ function draw(drawQueue: number[][][]){
             if (penStatus == true && verticalDistance && horizontalDistance && Math.abs(verticalDistance) == Math.abs(horizontalDistance)){                              
                 if (verticalFixTime && horizontalFixTime){
                     if (verticalFixTime > horizontalFixTime){
-                        pfspeed(1, 'blue', speed * verticalDirection)
+                        pfspeed(0, 'blue', speed * verticalDirection)
                         basic.pause(verticalFixTime - horizontalFixTime)
-                        pfspeed(1, 'red', speed * horizontalDirection)
+                        pfspeed(0, 'red', speed * horizontalDirection)
                         basic.pause(horizontalPauseTime)
                     } else {
-                        pfspeed(1, 'red', speed * horizontalDirection)
+                        pfspeed(0, 'red', speed * horizontalDirection)
                         basic.pause(horizontalFixTime - verticalFixTime)
-                        pfspeed(1, 'blue', speed * verticalDirection)
+                        pfspeed(0, 'blue', speed * verticalDirection)
                         basic.pause(verticalPauseTime)
                     }
                 } else if (verticalFixTime){
-                    pfspeed(1, 'blue', speed * verticalDirection)
+                    pfspeed(0, 'blue', speed * verticalDirection)
                     basic.pause(verticalFixTime)
-                    pfspeed(1, 'red', speed * horizontalDirection)
+                    pfspeed(0, 'red', speed * horizontalDirection)
                     basic.pause(verticalTime)
                 } else if (horizontalFixTime){
-                    pfspeed(1, 'red', speed * horizontalDirection)
+                    pfspeed(0, 'red', speed * horizontalDirection)
                     basic.pause(horizontalFixTime)
-                    pfspeed(1, 'blue', speed * verticalDirection)
+                    pfspeed(0, 'blue', speed * verticalDirection)
                     basic.pause(horizontalTime)
                 } else {
-                    // pfspeed(1, 'red', speed * horizontalDirection)
-                    // pfspeed(1, 'blue', speed * verticalDirection)
-                    pfTransmitter.comboPWMMode(
-                        PfChannel.Channel1, 
-                        horizontalDirection > 0 ? PfComboPWM.Forward7 : PfComboPWM.Backward7,
-                        verticalDirection > 0 ? PfComboPWM.Forward7 : PfComboPWM.Backward7,
-                    )
+                    pfspeed(0, 'red', speed * horizontalDirection)
+                    pfspeed(0, 'blue', speed * verticalDirection)
+                    // pfTransmitter.comboPWMMode(
+                    //     PfChannel.Channel1, 
+                    //     horizontalDirection > 0 ? PfComboPWM.Forward7 : PfComboPWM.Backward7,
+                    //     verticalDirection > 0 ? PfComboPWM.Forward7 : PfComboPWM.Backward7,
+                    // )
                     basic.pause(horizontalPauseTime)
                 }
 
-                // pfspeed(1, 'red', 0)
-                // pfspeed(1, 'blue', 0)
-                pfTransmitter.comboPWMMode(
-                    PfChannel.Channel1,
-                    PfComboPWM.BrakeThenFloat,
-                    PfComboPWM.BrakeThenFloat
-                )
+                pfspeed(0, 'red', 0)
+                pfspeed(0, 'blue', 0)
+                // pfTransmitter.comboPWMMode(
+                //     PfChannel.Channel1,
+                //     PfComboPWM.BrakeThenFloat,
+                //     PfComboPWM.BrakeThenFloat
+                // )
             } else {
                 if (horizontalDistance){
                     let timeStart = input.runningTime();
 
-                    pfspeed(1, 'red', speed * horizontalDirection)
+                    pfspeed(0, 'red', speed * horizontalDirection)
                     basic.pause(horizontalPauseTime)
 
                     let runTime = input.runningTime() - timeStart;
 
-                    pfspeed(1, 'red', 0)
+                    pfspeed(0, 'red', 0)
 
                     serial.writeLine(JSON.stringify({c: 'red', dt: runTime - horizontalPauseTime, pauseTime: horizontalPauseTime, runTime: runTime, fixTime: horizontalFixTime}))
                 }
@@ -180,12 +180,12 @@ function draw(drawQueue: number[][][]){
                 if (verticalDistance){
                     let timeStart = input.runningTime();
 
-                    pfspeed(1, 'blue', speed * verticalDirection)
+                    pfspeed(0, 'blue', speed * verticalDirection)
                     basic.pause(verticalPauseTime)
                     
                     let runTime = input.runningTime() - timeStart;
 
-                    pfspeed(1, 'blue', 0)
+                    pfspeed(0, 'blue', 0)
 
                     serial.writeLine(JSON.stringify({c: 'blue', dt: runTime - verticalPauseTime, pauseTime: verticalPauseTime, runTime: runTime, fixTime: verticalFixTime}))
                 }
@@ -375,4 +375,13 @@ input.onButtonPressed(Button.AB, function () {
     //     [[20,0],[10,-10]],
     //     [[10,-10],[0,0]],
     // ])
+
+    // Rect
+
+    draw([
+        [[0, 0],[0,10]],
+        [[0,10],[10,10]],
+        [[10,10],[10,0]],
+        [[10,0],[0,0]],
+    ])
 })
