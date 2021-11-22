@@ -73,8 +73,8 @@ function pfspeed(channel: number, output: string, speed: number){
 
 function draw(drawQueue: number[][][]){
     let speed = 7;
-    let fixedHorizontalDistance = 1.5;
-    let fixedVerticalDistance = 1.0;
+    let fixedHorizontalDistance = 1.1;// 1.5
+    let fixedVerticalDistance = 1.1;// 1.0
 
     while (drawQueue.length){
         let item = drawQueue.shift();
@@ -247,7 +247,8 @@ initialized();
 function alphabet(letter: string){
     let alphabet: { [key: string]: number[][][] } = {
         // A: [[[0,0],[0,2]],[[0,2],[1,2]],[[1,2],[1,0]],[[0,1],[1,1]]],
-        B: [[[0,0],[0,2]],[[0,2],[1,2]],[[1,2],[1,0]],[[1,0],[0,0]],[[0,1],[1,1]]],
+        // B: [[[0, 0], [0, 2]], [[0, 2], [1, 2]], [[1, 2], [1, 0]], [[1, 0], [0, 0]], [[0, 1], [1, 1]]],
+        B: [[[0, 0], [0, 2]], [[0, 2], [1, 2]], [[1, 2], [1, 1]], [[1, 1], [0, 1]], [[1, 1], [1, 0]], [[1, 0], [0, 0]]],
         // S: [[[0,0],[1,0]],[[1,0],[1,1]],[[1,1],[0,1]],[[0,1],[0,2]],[[0,2],[1,2]]],
         I: [[[0,0],[0,2]]],
         // N: [[[0,0],[0,2]],[[1,2],[1,0]],[[1,0.5],[0,1.5]]],
@@ -356,7 +357,7 @@ input.onButtonPressed(Button.B, function () {
     // draw(drawPoints)
 
     // print("LEGO")
-    print("M")
+    print("RB")
 })
 
 input.onButtonPressed(Button.AB, function () {
